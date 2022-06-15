@@ -14,7 +14,7 @@
 
 - [ ] Stwórz aplikację umożliwiającą pisanie zapytań SQL-owych jako ciąg funkcji w formie tekstu
 
-* Przykład takiego zapytania: "from("pieski").getAll().where("name = "Azor"")".
+* Przykład takiego zapytania: 'select(["id","name","surname"]).from("users_docker").getAll().where("name = "Azor"")'
 * Przetumaczone zapytanie SQL-owe : select \* from pieski where name = Azor
 
 - [ ] Lista słów SQL-owych którą powinien wspierać twój program:
