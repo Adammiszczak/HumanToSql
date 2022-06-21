@@ -5,10 +5,16 @@ type QueryData = {
   tableName?: string | undefined;
   columns?: string[] | undefined;
   where?: string[] | undefined;
+  whereNot?: string[] | undefined;
+  whereOr?: string | undefined;
   create?: string | undefined;
   insert?: string | undefined;
   distinct?: string | undefined;
   update?: string | undefined;
+  delete?: string | undefined;
+  truncate?: string | undefined;
+  orderAsc?: string | undefined;
+  orderDesc?: string | undefined;
 };
 
 @Injectable()
@@ -20,10 +26,16 @@ export class SqlQueryBuilderService {
     tableName: '',
     columns: [''],
     where: [],
+    whereNot: [],
+    whereOr: '',
     create: '',
     insert: '',
     distinct: '',
     update: '',
+    delete: '',
+    truncate: '',
+    orderAsc: '',
+    orderDesc: '',
   };
   // dodać orderNum?
   // dodać allowed lub disallowed methods np. na getAll -> getSpecific
@@ -32,10 +44,16 @@ export class SqlQueryBuilderService {
     getAll: { method: this.getAllColumns, argName: 'columns' },
     getSpecific: { method: this.getSpecific, argName: 'columns' },
     where: { method: this.prepareWhereClause, argName: 'where' },
+    whereNot: { method: this.prepareWhereNotClause, argName: 'whereNot' },
+    whereOr: { method: this.prepareWhereOrClause, argName: 'whereOr' },
+    orderAsc: { method: this.prepareOrderAscClause, argName: 'orderAsc' },
+    orderDesc: { method: this.prepareOrderDescClause, argName: 'orderDesc' },
     // create: { method: this.createTable, argName: 'create' },
     insertRecord: { method: this.insertRecord, argName: 'insert' },
     unique: { method: this.prepareDisctintClause, argName: 'distinct' },
     updateRecord: { method: this.prepareUpdateClause, argName: 'update' },
+    deleteRecord: { method: this.prepareDeleteClause, argName: 'delete' },
+    clearTable: { method: this.prepareTruncateClause, argName: 'truncate' },
   };
 
   public prepareRawSqlQuery(query: string): string {
@@ -112,10 +130,42 @@ export class SqlQueryBuilderService {
     return [`WHERE ${JSON.parse(condition)}`];
   }
 
+  //from("users_docker").getSpecific(["id","age"]).whereNot("age > 50")
+  private prepareWhereNotClause(condition: string) {
+    return [`WHERE NOT ${JSON.parse(condition)}`];
+  }
+
+  //from("users_docker").getSpecific(["id","age"]).whereOr(["age = 1212","age = 13","age = 23"])
+  private prepareWhereOrClause(conditions: string) {
+    const orConditions = JSON.parse(conditions);
+    return [`WHERE ${orConditions.join(' OR ')}`];
+  }
+
+  // from("users_docker").getSpecific(["id","age"]).where("age > 10").orderAsc("age")
+  private prepareOrderAscClause(column: string) {
+    return [`ORDER BY ${JSON.parse(column)} ASC;`];
+  }
+
+  // from("users_docker").getSpecific(["id","age"]).where("age > 10").orderAsc("age")
+  private prepareOrderDescClause(column: string) {
+    return [`ORDER BY ${JSON.parse(column)} DESC;`];
+  }
+
   // updateRecord(["users_docker","age","121"]).where("id = 1")
   private prepareUpdateClause(condition: string) {
     const [tableName, column, value] = JSON.parse(condition);
-    return `UPDATE ${tableName} SET ${column} =${value}`;
+    return `UPDATE ${tableName} SET ${column}=${value}`;
+  }
+
+  // deleteRecord(["users_docker","age","121"])
+  private prepareDeleteClause(condition: string) {
+    const [tableName, column, value] = JSON.parse(condition);
+    return `DELETE FROM ${tableName} WHERE ${column}=${value}`;
+  }
+
+  // clearTable("users_docker2")
+  private prepareTruncateClause(tableName: string) {
+    return `TRUNCATE TABLE ${JSON.parse(tableName)}`;
   }
 
   //from("users_docker").unique("age")
@@ -123,29 +173,39 @@ export class SqlQueryBuilderService {
     return `DISTINCT(${JSON.parse(column)})`;
   }
 
-  // private createTable() {}
-
-  // insertRecord(["users_docker","Dżejson","Myszokkkk","25"])
+  // insertRecord(["users_docker","Mariano","Marianowicz","121"])
+  // insertRecord(["users_docker","Dżejson","Myszokkkk","121"])
   private insertRecord(record: string) {
     const [tableName, ...recordData] = JSON.parse(record);
     const quotedRecordData = recordData.map((el) => `'${el}'`);
-    return `INSERT INTO ${tableName} VALUES(NULL,${quotedRecordData.join(
+    return `INSERT INTO ${tableName} VALUES(NULL, ${quotedRecordData.join(
       ', ',
     )})`;
   }
 
   private joinQueryData() {
-    let mainClause = `SELECT ${this.queryData.columns.join(', ')} FROM ${
-      this.queryData.tableName
-    }`;
+    let mainClause;
+
+    if (this.queryData.columns) {
+      mainClause = `SELECT ${this.queryData.columns.join(', ')} FROM ${
+        this.queryData.tableName
+      }`;
+    }
 
     if (this.queryData.update) {
-      mainClause = this.queryData.update;
+      return this.queryData.update;
+    }
+
+    if (this.queryData.delete) {
+      return this.queryData.delete;
     }
 
     if (this.queryData.insert) {
-      console.log(this.queryData.insert);
       return this.queryData.insert;
+    }
+
+    if (this.queryData.truncate) {
+      return this.queryData.truncate;
     }
 
     if (this.queryData.distinct) {
@@ -155,10 +215,26 @@ export class SqlQueryBuilderService {
       );
     }
 
-    const whereClause = this.queryData.where.join(' AND ');
-    if (whereClause) {
-      mainClause = `${mainClause} ${whereClause}`;
+    if (this.queryData.where.join(' AND ')) {
+      mainClause = `${mainClause} ${this.queryData.where.join(' AND ')}`;
     }
+
+    if (this.queryData.whereNot.join(' AND ')) {
+      mainClause = `${mainClause} ${this.queryData.whereNot.join(' AND ')}`;
+    }
+
+    if (this.queryData.whereOr) {
+      mainClause = `${mainClause} ${this.queryData.whereOr}`;
+    }
+
+    if (this.queryData.orderAsc) {
+      mainClause = `${mainClause} ${this.queryData.orderAsc}`;
+    }
+
+    if (this.queryData.orderDesc) {
+      mainClause = `${mainClause} ${this.queryData.orderDesc}`;
+    }
+
     return mainClause;
   }
 }

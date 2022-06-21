@@ -21,7 +21,7 @@ Przykład takiego zapytania: "from("users_docker").getAll().where("name = "Azor"
   // getCosTam powinno być po from('users_docker')
 - Przetumaczone zapytanie SQL-owe : select \* from pieski where name = Azor
 
-* [ ] Lista słów SQL-owych którą powinien wspierać twój program:
+* Lista słów SQL-owych którą powinien wspierać twój program:
 * [x] insert
 * [????] create table
 * [x] select
@@ -29,15 +29,15 @@ Przykład takiego zapytania: "from("users_docker").getAll().where("name = "Azor"
 * [x] add
 * [x] distinct
 * [x]update
-* delete
-* truncate
-* by xYZ asc
-* by XYZ desc
+* [x]delete
+* [x]truncate
+* [x] by xYZ asc
+* [x] by XYZ desc
 * [x] where
 * and
-* or
-* not
-* group by
+* [x] or
+* [x] not
+* [????] group by
 
 ## Cele opcjonalne do wykonania
 
