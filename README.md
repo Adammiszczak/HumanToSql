@@ -22,18 +22,18 @@ Przykład takiego zapytania: "from("users_docker").getAll().where("name = "Azor"
 - Przetumaczone zapytanie SQL-owe : select \* from pieski where name = Azor
 
 * [ ] Lista słów SQL-owych którą powinien wspierać twój program:
-* insert
-* create table
-* select
-* from
-* add
-* distinct
-* update
+* [x] insert
+* [????] create table
+* [x] select
+* [x] from
+* [x] add
+* [x] distinct
+* [x]update
 * delete
 * truncate
 * by xYZ asc
 * by XYZ desc
-* where
+* [x] where
 * and
 * or
 * not

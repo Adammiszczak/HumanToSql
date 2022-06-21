@@ -5,41 +5,37 @@ type QueryData = {
   tableName?: string | undefined;
   columns?: string[] | undefined;
   where?: string[] | undefined;
+  create?: string | undefined;
+  insert?: string | undefined;
+  distinct?: string | undefined;
+  update?: string | undefined;
 };
 
 @Injectable()
 export class SqlQueryBuilderService {
   private readonly logger = new Logger(SqlQueryBuilderService.name);
-  // scalić z methodsFunctions
-  // private readonly allowedMethods = [
-  //   'create',
-  //   'insert',
-  //   'select',
-  //   'from',
-  //   'where',
-  //   'distinct',
-  //   'update',
-  //   'delete',
-  //   'truncate',
-  //   'orderBy',
-  //   'and',
-  //   'or',
-  //   'not',
-  //   'groupBy',
-  // ];
 
   public queryData: QueryData = {
     database: '',
     tableName: '',
     columns: [''],
     where: [],
+    create: '',
+    insert: '',
+    distinct: '',
+    update: '',
   };
   // dodać orderNum?
+  // dodać allowed lub disallowed methods np. na getAll -> getSpecific
   private readonly methodsFunctions = {
     from: { method: this.getTableName, argName: 'tableName' },
     getAll: { method: this.getAllColumns, argName: 'columns' },
     getSpecific: { method: this.getSpecific, argName: 'columns' },
     where: { method: this.prepareWhereClause, argName: 'where' },
+    // create: { method: this.createTable, argName: 'create' },
+    insertRecord: { method: this.insertRecord, argName: 'insert' },
+    unique: { method: this.prepareDisctintClause, argName: 'distinct' },
+    updateRecord: { method: this.prepareUpdateClause, argName: 'update' },
   };
 
   public prepareRawSqlQuery(query: string): string {
@@ -51,13 +47,16 @@ export class SqlQueryBuilderService {
     }
 
     methodsAndValues.forEach((el, index) => {
-      console.log({ index }, el[1]);
-      const args = this.methodsFunctions[el[0]]['method'](el[1]);
-      const queryArgName = this.methodsFunctions[el[0]]['argName'];
+      const methodName = el[0];
+      const methodArgs = el[1];
+      console.log({ index }, methodArgs);
+      const args = this.methodsFunctions[methodName]['method'](methodArgs);
+      const queryArgName = this.methodsFunctions[methodName]['argName'];
       // walidacja, żeby zrobić push, merge, rest
       this.queryData[queryArgName] = args;
     });
     console.log(this.queryData);
+
     const rawSqlQuery = this.joinQueryData();
     this.logger.log(rawSqlQuery);
     this.queryData = {};
@@ -67,7 +66,6 @@ export class SqlQueryBuilderService {
   private splitHumanQuery(query: string): string[] {
     return query.split('.');
   }
-  // [["getAll", "id"],["from", "pieski"],,]
 
   private matchMethodsAndValues(splittedQuery: string[]): string[][] {
     const methodsAndValues = [];
@@ -79,6 +77,7 @@ export class SqlQueryBuilderService {
     });
     return methodsAndValues;
   }
+
   // public validateHumanQuery() {
   // assertValidMethods + validSymbols * validOrder
   // }
@@ -92,57 +91,74 @@ export class SqlQueryBuilderService {
     return array.every((el) => allowedMethods.includes(el[0]));
   }
 
-  // private prepareFromClause(tableName: string, columns: string[]) {
-  //   const rawFromClause = `SELECT ${columns.join(', ')} FROM ${tableName}`;
-  //   return rawFromClause;
-  // }
-
   private getTableName(tableName: string) {
     return JSON.parse(tableName);
   }
 
-  // private prepareGetAllClause(tableName: string) {
-  //   const rawGetAllClause = `FROM ${tableName}`;
-  //   return rawGetAllClause;
-  // }
-
+  //from("users_docker").getAll()
   private getAllColumns() {
     return ['*'];
   }
-  //from("users_docker").getSpecific("["id","age"]").where("age > 20")
+
+  //from("users_docker").getSpecific(["id","age"]).where("age > 20")
   private getSpecific(columns: string) {
     console.log({ columns });
     return JSON.parse(columns);
     //throw
   }
 
+  //from("users_docker").getSpecific(["id","age"]).where("age > 20")
   private prepareWhereClause(condition: string) {
     return [`WHERE ${JSON.parse(condition)}`];
   }
 
-  private joinQueryData() {
-    const selectClause = `SELECT ${this.queryData.columns.join(', ')} FROM ${
-      this.queryData.tableName
-    }`;
-    const whereClause = this.queryData.where.join(' AND ');
-
-    if (whereClause) {
-      return `${selectClause} ${whereClause}`;
-    }
-    return selectClause;
+  // updateRecord(["users_docker","age","121"]).where("id = 1")
+  private prepareUpdateClause(condition: string) {
+    const [tableName, column, value] = JSON.parse(condition);
+    return `UPDATE ${tableName} SET ${column} =${value}`;
   }
 
-  // private checkHumanQueryOrder() {}
+  //from("users_docker").unique("age")
+  private prepareDisctintClause(column: string) {
+    return `DISTINCT(${JSON.parse(column)})`;
+  }
 
-  // praivate prepareCreateClause() {}
-  // praivate prepareInsertClause() {}
-  // praivate prepareDistinctClause() {}
-  // praivate prepareUpdateClause() {}
-  // praivate prepareDeleteClause() {}
-  // praivate prepareTruncateClause() {}
-  // praivate prepareOrderByClause() {}
-  // praivate prepareAndClause() {}
-  // praivate prepareOrClause() {}
-  // praivate prepareNotClause() {}
-  // praivate prepareGroupByClause() {}
+  // private createTable() {}
+
+  // insertRecord(["users_docker","Dżejson","Myszokkkk","25"])
+  private insertRecord(record: string) {
+    const [tableName, ...recordData] = JSON.parse(record);
+    const quotedRecordData = recordData.map((el) => `'${el}'`);
+    return `INSERT INTO ${tableName} VALUES(NULL,${quotedRecordData.join(
+      ', ',
+    )})`;
+  }
+
+  private joinQueryData() {
+    let mainClause = `SELECT ${this.queryData.columns.join(', ')} FROM ${
+      this.queryData.tableName
+    }`;
+
+    if (this.queryData.update) {
+      mainClause = this.queryData.update;
+    }
+
+    if (this.queryData.insert) {
+      console.log(this.queryData.insert);
+      return this.queryData.insert;
+    }
+
+    if (this.queryData.distinct) {
+      mainClause = mainClause.replace(
+        ' FROM',
+        `${this.queryData.distinct} FROM`,
+      );
+    }
+
+    const whereClause = this.queryData.where.join(' AND ');
+    if (whereClause) {
+      mainClause = `${mainClause} ${whereClause}`;
+    }
+    return mainClause;
+  }
 }
