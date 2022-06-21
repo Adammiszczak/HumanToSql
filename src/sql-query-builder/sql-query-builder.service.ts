@@ -1,39 +1,45 @@
 import { Injectable, Logger } from '@nestjs/common';
 
+type QueryData = {
+  database?: string | undefined;
+  tableName?: string | undefined;
+  columns?: string[] | undefined;
+  where?: string[] | undefined;
+};
+
 @Injectable()
 export class SqlQueryBuilderService {
   private readonly logger = new Logger(SqlQueryBuilderService.name);
-  private readonly allowedMethods = [
-    'create',
-    'insert',
-    'select',
-    'from',
-    'where',
-    'distinct',
-    'update',
-    'delete',
-    'truncate',
-    'orderBy',
-    'and',
-    'or',
-    'not',
-    'groupBy',
-  ];
-
-  //   testCasesNegative = [
-  //     { method: "setDiscount", value: -100 },
-  //     { method: "setDiscount", value: 0 },
-  //     { method: "setDiscount", value: 7.2 },
-  //     { method: "setDiscount", value: 120 },
-  //     { method: "removeItem", value: cartItem1 },
-  //     { method: "removeItem", value: cartItem2 },
+  // scalić z methodsFunctions
+  // private readonly allowedMethods = [
+  //   'create',
+  //   'insert',
+  //   'select',
+  //   'from',
+  //   'where',
+  //   'distinct',
+  //   'update',
+  //   'delete',
+  //   'truncate',
+  //   'orderBy',
+  //   'and',
+  //   'or',
+  //   'not',
+  //   'groupBy',
   // ];
 
+  public queryData: QueryData = {
+    database: '',
+    tableName: '',
+    columns: [''],
+    where: [],
+  };
   // dodać orderNum?
   private readonly methodsFunctions = {
-    select: { method: this.prepareSelectClause }, //this.clausesFunctions['select']['method'](someArgs)
-    from: { method: this.prepareFromClause }, //this.clausesFunctions['select']['method'](someArgs)
-    where: { method: this.prepareWhereClause }, //this.clausesFunctions['select']['method'](someArgs)
+    from: { method: this.getTableName, argName: 'tableName' },
+    getAll: { method: this.getAllColumns, argName: 'columns' },
+    getSpecific: { method: this.getSpecific, argName: 'columns' },
+    where: { method: this.prepareWhereClause, argName: 'where' },
   };
 
   public prepareRawSqlQuery(query: string): string {
@@ -44,24 +50,31 @@ export class SqlQueryBuilderService {
       throw new Error("Invalid Request - some methods aren't exist.");
     }
 
-    const rawSqlQuery = [];
-    methodsAndValues.forEach((el) => {
-      const queryPart = this.methodsFunctions[el[0]]['method']([el[1]]);
-      rawSqlQuery.push(queryPart);
+    methodsAndValues.forEach((el, index) => {
+      console.log({ index }, el[1]);
+      const args = this.methodsFunctions[el[0]]['method'](el[1]);
+      const queryArgName = this.methodsFunctions[el[0]]['argName'];
+      // walidacja, żeby zrobić push, merge, rest
+      this.queryData[queryArgName] = args;
     });
-    this.logger.log(rawSqlQuery.join(' '));
-    return rawSqlQuery.join(' ');
+    console.log(this.queryData);
+    const rawSqlQuery = this.joinQueryData();
+    this.logger.log(rawSqlQuery);
+    this.queryData = {};
+    return rawSqlQuery;
   }
 
   private splitHumanQuery(query: string): string[] {
     return query.split('.');
   }
-  // [["select", "id"],["from", "pieski"],,]
+  // [["getAll", "id"],["from", "pieski"],,]
+
   private matchMethodsAndValues(splittedQuery: string[]): string[][] {
     const methodsAndValues = [];
     splittedQuery.forEach((el) => {
-      const regex = /([a-z]+)\(\"([a-z*_-]+)\"\)/i;
-      const [, method, arg] = el.match(regex);
+      const regex = /([a-z]+)\((.*)\)/i;
+      console.log('regex', el.match(regex));
+      const [, method, arg = ''] = el.match(regex);
       methodsAndValues.push([method, arg]);
     });
     return methodsAndValues;
@@ -70,21 +83,53 @@ export class SqlQueryBuilderService {
   // assertValidMethods + validSymbols * validOrder
   // }
 
-  private assertAllowedClauses(array: string[][]) {
-    return array.every((el) => this.allowedMethods.includes(el[0]));
+  private getAllowedMethods(): string[] {
+    return Object.keys(this.methodsFunctions);
   }
 
-  private prepareSelectClause(columns: string[]) {
-    const rawSelectClause = `SELECT ${columns.join(', ')}`;
-    return rawSelectClause;
+  private assertAllowedClauses(array: string[][]) {
+    const allowedMethods = this.getAllowedMethods();
+    return array.every((el) => allowedMethods.includes(el[0]));
   }
-  private prepareFromClause(tableName: string) {
-    const rawFromClause = `FROM ${tableName}`;
-    return rawFromClause;
+
+  // private prepareFromClause(tableName: string, columns: string[]) {
+  //   const rawFromClause = `SELECT ${columns.join(', ')} FROM ${tableName}`;
+  //   return rawFromClause;
+  // }
+
+  private getTableName(tableName: string) {
+    return JSON.parse(tableName);
   }
-  private prepareWhereClause(fieldName: string, fieldValue: string) {
-    const rawWhereClause = `WHERE ${fieldName}='${fieldValue}'`;
-    return rawWhereClause;
+
+  // private prepareGetAllClause(tableName: string) {
+  //   const rawGetAllClause = `FROM ${tableName}`;
+  //   return rawGetAllClause;
+  // }
+
+  private getAllColumns() {
+    return ['*'];
+  }
+  //from("users_docker").getSpecific("["id","age"]").where("age > 20")
+  private getSpecific(columns: string) {
+    console.log({ columns });
+    return JSON.parse(columns);
+    //throw
+  }
+
+  private prepareWhereClause(condition: string) {
+    return [`WHERE ${JSON.parse(condition)}`];
+  }
+
+  private joinQueryData() {
+    const selectClause = `SELECT ${this.queryData.columns.join(', ')} FROM ${
+      this.queryData.tableName
+    }`;
+    const whereClause = this.queryData.where.join(' AND ');
+
+    if (whereClause) {
+      return `${selectClause} ${whereClause}`;
+    }
+    return selectClause;
   }
 
   // private checkHumanQueryOrder() {}

@@ -14,26 +14,30 @@
 
 - [ ] Stwórz aplikację umożliwiającą pisanie zapytań SQL-owych jako ciąg funkcji w formie tekstu
 
-* Przykład takiego zapytania: 'select(["id","name","surname"]).from("users_docker").getAll().where("name = "Azor"")'
-* Przetumaczone zapytanie SQL-owe : select \* from pieski where name = Azor
+Przykład takiego zapytania: "from("users_docker").getAll().where("name = "Azor"")".
 
-- [ ] Lista słów SQL-owych którą powinien wspierać twój program:
-- insert
-- create table
-- select
-- from
-- add
-- distinct
-- update
-- delete
-- truncate
-- by xYZ asc
-- by XYZ desc
-- where
-- and
-- or
-- not
-- group by
+- Przykład takiego zapytania: 'select(["id","name","surname"]).from("users_docker").getAll().where("name = "Azor"")'
+  // getAll / getChoosen
+  // getCosTam powinno być po from('users_docker')
+- Przetumaczone zapytanie SQL-owe : select \* from pieski where name = Azor
+
+* [ ] Lista słów SQL-owych którą powinien wspierać twój program:
+* insert
+* create table
+* select
+* from
+* add
+* distinct
+* update
+* delete
+* truncate
+* by xYZ asc
+* by XYZ desc
+* where
+* and
+* or
+* not
+* group by
 
 ## Cele opcjonalne do wykonania
 

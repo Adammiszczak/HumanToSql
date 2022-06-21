@@ -23,6 +23,7 @@ export class DatabaseEngineService {
   }
 
   public async getAllRecords(tableName: string) {
+    // try catch
     const db = this.connectToDB();
     return db
       .select()

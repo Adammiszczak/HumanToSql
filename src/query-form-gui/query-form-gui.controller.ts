@@ -39,6 +39,7 @@ export class QueryFormGuiController {
       const rawQuery = this.sqlQueryBuilderService.prepareRawSqlQuery(
         body.givenQuery,
       );
+      console.log('Controller Done');
       const response = await this.databaseEngineService.makeRawQuery(rawQuery);
       console.log(JSON.parse(response)[0]);
       return JSON.parse(response)[0];
