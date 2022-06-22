@@ -7,6 +7,7 @@ type QueryData = {
   where?: string[] | undefined;
   whereNot?: string[] | undefined;
   whereOr?: string | undefined;
+  whereAnd?: string | undefined;
   create?: string | undefined;
   insert?: string | undefined;
   distinct?: string | undefined;
@@ -15,6 +16,7 @@ type QueryData = {
   truncate?: string | undefined;
   orderAsc?: string | undefined;
   orderDesc?: string | undefined;
+  groupBy?: string | undefined;
 };
 
 @Injectable()
@@ -28,27 +30,59 @@ export class SqlQueryBuilderService {
     where: [],
     whereNot: [],
     whereOr: '',
+    whereAnd: '',
     create: '',
     insert: '',
     distinct: '',
     update: '',
     delete: '',
     truncate: '',
+    groupBy: '',
     orderAsc: '',
     orderDesc: '',
   };
-  // dodać orderNum?
+
   // dodać allowed lub disallowed methods np. na getAll -> getSpecific
   private readonly methodsFunctions = {
-    from: { method: this.getTableName, argName: 'tableName' },
-    getAll: { method: this.getAllColumns, argName: 'columns' },
-    getSpecific: { method: this.getSpecific, argName: 'columns' },
+    from: {
+      method: this.getTableName,
+      argName: 'tableName',
+      notValidOtherMethods: [
+        'insertRecord',
+        'updateRecord',
+        'deleteRecord',
+        'clearTable',
+      ],
+    },
+    getAll: {
+      method: this.getAllColumns,
+      argName: 'columns',
+      notValidOtherMethods: [
+        'getSpecific',
+        'insertRecord',
+        'updateRecord',
+        'deleteRecord',
+        'clearTable',
+      ],
+    },
+    getSpecific: {
+      method: this.getSpecific,
+      argName: 'columns',
+      notValidOtherMethods: [
+        'getAll',
+        'insertRecord',
+        'updateRecord',
+        'deleteRecord',
+        'clearTable',
+      ],
+    },
     where: { method: this.prepareWhereClause, argName: 'where' },
     whereNot: { method: this.prepareWhereNotClause, argName: 'whereNot' },
     whereOr: { method: this.prepareWhereOrClause, argName: 'whereOr' },
+    whereAnd: { method: this.prepareWhereAndClause, argName: 'whereAnd' },
+    groupBy: { method: this.prepareGroupByClause, argName: 'groupBy' },
     orderAsc: { method: this.prepareOrderAscClause, argName: 'orderAsc' },
     orderDesc: { method: this.prepareOrderDescClause, argName: 'orderDesc' },
-    // create: { method: this.createTable, argName: 'create' },
     insertRecord: { method: this.insertRecord, argName: 'insert' },
     unique: { method: this.prepareDisctintClause, argName: 'distinct' },
     updateRecord: { method: this.prepareUpdateClause, argName: 'update' },
@@ -59,21 +93,22 @@ export class SqlQueryBuilderService {
   public prepareRawSqlQuery(query: string): string {
     const splittedQuery = this.splitHumanQuery(query);
     const methodsAndValues = this.matchMethodsAndValues(splittedQuery);
-    const assertValidMethods = this.assertAllowedClauses(methodsAndValues);
-    if (!assertValidMethods) {
-      throw new Error("Invalid Request - some methods aren't exist.");
-    }
+    const checkIfMethodsAreValid = this.checkIfAllowedMethods(methodsAndValues);
+    this.assertAllowedMethods(checkIfMethodsAreValid);
 
-    methodsAndValues.forEach((el, index) => {
+    methodsAndValues.forEach((el) => {
       const methodName = el[0];
       const methodArgs = el[1];
-      console.log({ index }, methodArgs);
+      const checkIfQueryIsValid = this.checkIfValidQueryMethods(
+        methodName,
+        methodsAndValues,
+      );
+      this.assertValidQueryMethods(checkIfQueryIsValid);
       const args = this.methodsFunctions[methodName]['method'](methodArgs);
       const queryArgName = this.methodsFunctions[methodName]['argName'];
-      // walidacja, żeby zrobić push, merge, rest
       this.queryData[queryArgName] = args;
     });
-    console.log(this.queryData);
+    // console.log(this.queryData);
 
     const rawSqlQuery = this.joinQueryData();
     this.logger.log(rawSqlQuery);
@@ -89,7 +124,7 @@ export class SqlQueryBuilderService {
     const methodsAndValues = [];
     splittedQuery.forEach((el) => {
       const regex = /([a-z]+)\((.*)\)/i;
-      console.log('regex', el.match(regex));
+      // console.log('regex', el.match(regex));
       const [, method, arg = ''] = el.match(regex);
       methodsAndValues.push([method, arg]);
     });
@@ -104,9 +139,34 @@ export class SqlQueryBuilderService {
     return Object.keys(this.methodsFunctions);
   }
 
-  private assertAllowedClauses(array: string[][]) {
+  private checkIfAllowedMethods(queryMethods: string[][]) {
     const allowedMethods = this.getAllowedMethods();
-    return array.every((el) => allowedMethods.includes(el[0]));
+    return queryMethods.every((el) => allowedMethods.includes(el[0]));
+  }
+
+  private assertAllowedMethods(IfAllowedMethods: boolean): void | never {
+    if (!IfAllowedMethods) {
+      throw new Error("Invalid Request - some methods don't exist.");
+    }
+  }
+
+  // from("users_docker").getAll().getSpecific(["id","age"])
+  private checkIfValidQueryMethods(
+    methodName: string,
+    queryMethods: string[][],
+  ) {
+    const notValidQueryngMethods =
+      this.methodsFunctions[methodName].notValidOtherMethods;
+    return !queryMethods.some((method) =>
+      notValidQueryngMethods.includes(method[0]),
+    );
+  }
+
+  // from("users_docker").getAll().getSpecific(["id","age"])
+  private assertValidQueryMethods(IfValidQueryMethods: boolean): void | never {
+    if (!IfValidQueryMethods) {
+      throw new Error('Used methods excludes each other');
+    }
   }
 
   private getTableName(tableName: string) {
@@ -120,7 +180,6 @@ export class SqlQueryBuilderService {
 
   //from("users_docker").getSpecific(["id","age"]).where("age > 20")
   private getSpecific(columns: string) {
-    console.log({ columns });
     return JSON.parse(columns);
     //throw
   }
@@ -132,7 +191,8 @@ export class SqlQueryBuilderService {
 
   //from("users_docker").getSpecific(["id","age"]).whereNot("age > 50")
   private prepareWhereNotClause(condition: string) {
-    return [`WHERE NOT ${JSON.parse(condition)}`];
+    const notConditions = JSON.parse(condition);
+    return [`WHERE NOT ${notConditions.join(' OR ')}`];
   }
 
   //from("users_docker").getSpecific(["id","age"]).whereOr(["age = 1212","age = 13","age = 23"])
@@ -141,14 +201,27 @@ export class SqlQueryBuilderService {
     return [`WHERE ${orConditions.join(' OR ')}`];
   }
 
+  //from("users_docker").getAll().whereAnd(["age = 121","firstName = 'Dżejssson'"])
+  private prepareWhereAndClause(conditions: string) {
+    const orConditions = JSON.parse(conditions);
+    return [`WHERE ${orConditions.join(' AND ')}`];
+  }
+
   // from("users_docker").getSpecific(["id","age"]).where("age > 10").orderAsc("age")
   private prepareOrderAscClause(column: string) {
-    return [`ORDER BY ${JSON.parse(column)} ASC;`];
+    return [`ORDER BY ${JSON.parse(column)} ASC`];
   }
 
   // from("users_docker").getSpecific(["id","age"]).where("age > 10").orderAsc("age")
   private prepareOrderDescClause(column: string) {
-    return [`ORDER BY ${JSON.parse(column)} DESC;`];
+    return [`ORDER BY ${JSON.parse(column)} DESC`];
+  }
+
+  // from("users_docker").getSpecific(["age"]).where("age > 15").groupBy(["age"]).orderDesc("age")
+  private prepareGroupByClause(columns: string) {
+    const groupByColumns = JSON.parse(columns);
+    console.log({ groupByColumns });
+    return [`GROUP BY ${groupByColumns.join(',')}`];
   }
 
   // updateRecord(["users_docker","age","121"]).where("id = 1")
@@ -187,6 +260,7 @@ export class SqlQueryBuilderService {
     let mainClause;
 
     if (this.queryData.columns) {
+      console.log('done');
       mainClause = `SELECT ${this.queryData.columns.join(', ')} FROM ${
         this.queryData.tableName
       }`;
@@ -215,16 +289,24 @@ export class SqlQueryBuilderService {
       );
     }
 
-    if (this.queryData.where.join(' AND ')) {
-      mainClause = `${mainClause} ${this.queryData.where.join(' AND ')}`;
+    if (this.queryData.where) {
+      mainClause = `${mainClause} ${this.queryData.where}`;
     }
 
-    if (this.queryData.whereNot.join(' AND ')) {
-      mainClause = `${mainClause} ${this.queryData.whereNot.join(' AND ')}`;
+    if (this.queryData.whereNot) {
+      mainClause = `${mainClause} ${this.queryData.whereNot}`;
     }
 
     if (this.queryData.whereOr) {
       mainClause = `${mainClause} ${this.queryData.whereOr}`;
+    }
+
+    if (this.queryData.whereAnd) {
+      mainClause = `${mainClause} ${this.queryData.whereAnd}`;
+    }
+
+    if (this.queryData.groupBy) {
+      mainClause = `${mainClause} ${this.queryData.groupBy}`;
     }
 
     if (this.queryData.orderAsc) {

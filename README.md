@@ -23,7 +23,7 @@ Przykład takiego zapytania: "from("users_docker").getAll().where("name = "Azor"
 
 * Lista słów SQL-owych którą powinien wspierać twój program:
 * [x] insert
-* [????] create table
+* [????] create table (jaki input ma dawać user? Raczej nie będzie dawał informacji, że kolumna firstName ma typ varchar(255), co jest wymagane przy tworzeniu tabeli)
 * [x] select
 * [x] from
 * [x] add
@@ -34,10 +34,10 @@ Przykład takiego zapytania: "from("users_docker").getAll().where("name = "Azor"
 * [x] by xYZ asc
 * [x] by XYZ desc
 * [x] where
-* and
+* [x] and
 * [x] or
 * [x] not
-* [????] group by
+* [x] group by
 
 ## Cele opcjonalne do wykonania
 
