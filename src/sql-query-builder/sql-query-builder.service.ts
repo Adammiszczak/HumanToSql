@@ -1,81 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
-
-type QueryData = {
-  database?: string | undefined;
-  tableName?: string | undefined;
-  columns?: string[] | undefined;
-  where?: string[] | undefined;
-  whereNot?: string[] | undefined;
-  whereOr?: string | undefined;
-  whereAnd?: string | undefined;
-  create?: string | undefined;
-  insert?: string | undefined;
-  distinct?: string | undefined;
-  update?: string | undefined;
-  delete?: string | undefined;
-  truncate?: string | undefined;
-  orderAsc?: string | undefined;
-  orderDesc?: string | undefined;
-  groupBy?: string | undefined;
-};
+import { sqlQueryBuilderValidator } from './sql-query-builder-validator';
+import { sqlQueryDataMerger } from './sql-query-data-merger';
 
 @Injectable()
 export class SqlQueryBuilderService {
   private readonly logger = new Logger(SqlQueryBuilderService.name);
 
-  public queryData: QueryData = {
-    database: '',
-    tableName: '',
-    columns: [''],
-    where: [],
-    whereNot: [],
-    whereOr: '',
-    whereAnd: '',
-    create: '',
-    insert: '',
-    distinct: '',
-    update: '',
-    delete: '',
-    truncate: '',
-    groupBy: '',
-    orderAsc: '',
-    orderDesc: '',
-  };
-
-  // dodać allowed lub disallowed methods np. na getAll -> getSpecific
   private readonly methodsFunctions = {
-    from: {
-      method: this.getTableName,
-      argName: 'tableName',
-      notValidOtherMethods: [
-        'insertRecord',
-        'updateRecord',
-        'deleteRecord',
-        'clearTable',
-      ],
-    },
-    getAll: {
-      method: this.getAllColumns,
-      argName: 'columns',
-      notValidOtherMethods: [
-        'getSpecific',
-        'insertRecord',
-        'updateRecord',
-        'deleteRecord',
-        'clearTable',
-      ],
-    },
-    getSpecific: {
-      method: this.getSpecific,
-      argName: 'columns',
-      notValidOtherMethods: [
-        'getAll',
-        'insertRecord',
-        'updateRecord',
-        'deleteRecord',
-        'clearTable',
-      ],
-    },
+    from: { method: this.getTableName, argName: 'tableName' },
+    getAll: { method: this.getAllColumns, argName: 'columns' },
+    getSpecific: { method: this.getSpecific, argName: 'columns' },
     where: { method: this.prepareWhereClause, argName: 'where' },
     whereNot: { method: this.prepareWhereNotClause, argName: 'whereNot' },
     whereOr: { method: this.prepareWhereOrClause, argName: 'whereOr' },
@@ -91,29 +25,32 @@ export class SqlQueryBuilderService {
   };
 
   public prepareRawSqlQuery(query: string): string {
-    const splittedQuery = this.splitHumanQuery(query);
-    const methodsAndValues = this.matchMethodsAndValues(splittedQuery);
-    const checkIfMethodsAreValid = this.checkIfAllowedMethods(methodsAndValues);
-    this.assertAllowedMethods(checkIfMethodsAreValid);
+    try {
+      const splittedQuery = this.splitHumanQuery(query);
+      const methodsAndValues = this.matchMethodsAndValues(splittedQuery);
+      const checkIfMethodsAreValid =
+        sqlQueryBuilderValidator.checkIfAllowedMethods(methodsAndValues);
+      sqlQueryBuilderValidator.assertAllowedMethods(checkIfMethodsAreValid);
 
-    methodsAndValues.forEach((el) => {
-      const methodName = el[0];
-      const methodArgs = el[1];
-      const checkIfQueryIsValid = this.checkIfValidQueryMethods(
-        methodName,
-        methodsAndValues,
-      );
-      this.assertValidQueryMethods(checkIfQueryIsValid);
-      const args = this.methodsFunctions[methodName]['method'](methodArgs);
-      const queryArgName = this.methodsFunctions[methodName]['argName'];
-      this.queryData[queryArgName] = args;
-    });
-    // console.log(this.queryData);
-
-    const rawSqlQuery = this.joinQueryData();
-    this.logger.log(rawSqlQuery);
-    this.queryData = {};
-    return rawSqlQuery;
+      methodsAndValues.forEach((el) => {
+        const methodName = el[0];
+        const methodArgs = el[1];
+        const checkIfQueryIsValid =
+          sqlQueryBuilderValidator.checkIfValidQueryMethods(
+            methodName,
+            methodsAndValues,
+          );
+        sqlQueryBuilderValidator.assertValidQueryMethods(checkIfQueryIsValid);
+        const args = this.methodsFunctions[methodName]['method'](methodArgs);
+        const queryArgName = this.methodsFunctions[methodName]['argName'];
+        sqlQueryDataMerger.queryData[queryArgName] = args;
+      });
+      const rawSqlQuery = sqlQueryDataMerger.joinQueryData();
+      this.logger.log(rawSqlQuery);
+      return rawSqlQuery;
+    } catch (error) {
+      throw new Error(error);
+    }
   }
 
   private splitHumanQuery(query: string): string[] {
@@ -124,49 +61,10 @@ export class SqlQueryBuilderService {
     const methodsAndValues = [];
     splittedQuery.forEach((el) => {
       const regex = /([a-z]+)\((.*)\)/i;
-      // console.log('regex', el.match(regex));
       const [, method, arg = ''] = el.match(regex);
       methodsAndValues.push([method, arg]);
     });
     return methodsAndValues;
-  }
-
-  // public validateHumanQuery() {
-  // assertValidMethods + validSymbols * validOrder
-  // }
-
-  private getAllowedMethods(): string[] {
-    return Object.keys(this.methodsFunctions);
-  }
-
-  private checkIfAllowedMethods(queryMethods: string[][]) {
-    const allowedMethods = this.getAllowedMethods();
-    return queryMethods.every((el) => allowedMethods.includes(el[0]));
-  }
-
-  private assertAllowedMethods(IfAllowedMethods: boolean): void | never {
-    if (!IfAllowedMethods) {
-      throw new Error("Invalid Request - some methods don't exist.");
-    }
-  }
-
-  // from("users_docker").getAll().getSpecific(["id","age"])
-  private checkIfValidQueryMethods(
-    methodName: string,
-    queryMethods: string[][],
-  ) {
-    const notValidQueryngMethods =
-      this.methodsFunctions[methodName].notValidOtherMethods;
-    return !queryMethods.some((method) =>
-      notValidQueryngMethods.includes(method[0]),
-    );
-  }
-
-  // from("users_docker").getAll().getSpecific(["id","age"])
-  private assertValidQueryMethods(IfValidQueryMethods: boolean): void | never {
-    if (!IfValidQueryMethods) {
-      throw new Error('Used methods excludes each other');
-    }
   }
 
   private getTableName(tableName: string) {
@@ -254,69 +152,5 @@ export class SqlQueryBuilderService {
     return `INSERT INTO ${tableName} VALUES(NULL, ${quotedRecordData.join(
       ', ',
     )})`;
-  }
-
-  private joinQueryData() {
-    let mainClause;
-
-    if (this.queryData.columns) {
-      console.log('done');
-      mainClause = `SELECT ${this.queryData.columns.join(', ')} FROM ${
-        this.queryData.tableName
-      }`;
-    }
-
-    if (this.queryData.update) {
-      return this.queryData.update;
-    }
-
-    if (this.queryData.delete) {
-      return this.queryData.delete;
-    }
-
-    if (this.queryData.insert) {
-      return this.queryData.insert;
-    }
-
-    if (this.queryData.truncate) {
-      return this.queryData.truncate;
-    }
-
-    if (this.queryData.distinct) {
-      mainClause = mainClause.replace(
-        ' FROM',
-        `${this.queryData.distinct} FROM`,
-      );
-    }
-
-    if (this.queryData.where) {
-      mainClause = `${mainClause} ${this.queryData.where}`;
-    }
-
-    if (this.queryData.whereNot) {
-      mainClause = `${mainClause} ${this.queryData.whereNot}`;
-    }
-
-    if (this.queryData.whereOr) {
-      mainClause = `${mainClause} ${this.queryData.whereOr}`;
-    }
-
-    if (this.queryData.whereAnd) {
-      mainClause = `${mainClause} ${this.queryData.whereAnd}`;
-    }
-
-    if (this.queryData.groupBy) {
-      mainClause = `${mainClause} ${this.queryData.groupBy}`;
-    }
-
-    if (this.queryData.orderAsc) {
-      mainClause = `${mainClause} ${this.queryData.orderAsc}`;
-    }
-
-    if (this.queryData.orderDesc) {
-      mainClause = `${mainClause} ${this.queryData.orderDesc}`;
-    }
-
-    return mainClause;
   }
 }
