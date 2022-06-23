@@ -1,12 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { sqlQueryBuilderValidator } from './sql-query-builder-validator';
 import { sqlQueryDataMerger } from './sql-query-data-merger';
+import { SqlBuilderMethods } from './types/sqlBuilderMethods';
 
 @Injectable()
 export class SqlQueryBuilderService {
   private readonly logger = new Logger(SqlQueryBuilderService.name);
 
-  private readonly methodsFunctions = {
+  private readonly methodsFunctions: SqlBuilderMethods = {
     from: { method: this.getTableName, argName: 'tableName' },
     getAll: { method: this.getAllColumns, argName: 'columns' },
     getSpecific: { method: this.getSpecific, argName: 'columns' },
@@ -49,6 +50,7 @@ export class SqlQueryBuilderService {
       this.logger.log(rawSqlQuery);
       return rawSqlQuery;
     } catch (error) {
+      this.logger.error(error);
       throw new Error(error);
     }
   }
@@ -67,36 +69,36 @@ export class SqlQueryBuilderService {
     return methodsAndValues;
   }
 
-  private getTableName(tableName: string) {
+  private getTableName(tableName: string): string {
     return JSON.parse(tableName);
   }
 
   //from("users_docker").getAll()
-  private getAllColumns() {
+  private getAllColumns(): string[] {
     return ['*'];
   }
 
   //from("users_docker").getSpecific(["id","age"]).where("age > 20")
-  private getSpecific(columns: string) {
+  private getSpecific(columns: string): string[] {
     return JSON.parse(columns);
     //throw
   }
 
   //from("users_docker").getSpecific(["id","age"]).where("age > 20")
-  private prepareWhereClause(condition: string) {
-    return [`WHERE ${JSON.parse(condition)}`];
+  private prepareWhereClause(condition: string): string {
+    return `WHERE ${JSON.parse(condition)}`;
   }
 
   //from("users_docker").getSpecific(["id","age"]).whereNot("age > 50")
-  private prepareWhereNotClause(condition: string) {
+  private prepareWhereNotClause(condition: string): string {
     const notConditions = JSON.parse(condition);
-    return [`WHERE NOT ${notConditions.join(' OR ')}`];
+    return `WHERE NOT ${notConditions.join(' OR ')}`;
   }
 
   //from("users_docker").getSpecific(["id","age"]).whereOr(["age = 1212","age = 13","age = 23"])
-  private prepareWhereOrClause(conditions: string) {
+  private prepareWhereOrClause(conditions: string): string {
     const orConditions = JSON.parse(conditions);
-    return [`WHERE ${orConditions.join(' OR ')}`];
+    return `WHERE ${orConditions.join(' OR ')}`;
   }
 
   //from("users_docker").getAll().whereAnd(["age = 121","firstName = 'Dżejssson'"])
@@ -106,47 +108,46 @@ export class SqlQueryBuilderService {
   }
 
   // from("users_docker").getSpecific(["id","age"]).where("age > 10").orderAsc("age")
-  private prepareOrderAscClause(column: string) {
-    return [`ORDER BY ${JSON.parse(column)} ASC`];
+  private prepareOrderAscClause(column: string): string {
+    return `ORDER BY ${JSON.parse(column)} ASC`;
   }
 
-  // from("users_docker").getSpecific(["id","age"]).where("age > 10").orderAsc("age")
-  private prepareOrderDescClause(column: string) {
-    return [`ORDER BY ${JSON.parse(column)} DESC`];
+  // from("users_docker").getSpecific(["id","age"]).where("age > 10").orderDesc("age")
+  private prepareOrderDescClause(column: string): string {
+    return `ORDER BY ${JSON.parse(column)} DESC`;
   }
 
   // from("users_docker").getSpecific(["age"]).where("age > 15").groupBy(["age"]).orderDesc("age")
-  private prepareGroupByClause(columns: string) {
+  private prepareGroupByClause(columns: string): string {
     const groupByColumns = JSON.parse(columns);
-    console.log({ groupByColumns });
-    return [`GROUP BY ${groupByColumns.join(',')}`];
+    return `GROUP BY ${groupByColumns.join(',')}`;
   }
 
   // updateRecord(["users_docker","age","121"]).where("id = 1")
-  private prepareUpdateClause(condition: string) {
+  private prepareUpdateClause(condition: string): string {
     const [tableName, column, value] = JSON.parse(condition);
     return `UPDATE ${tableName} SET ${column}=${value}`;
   }
 
   // deleteRecord(["users_docker","age","121"])
-  private prepareDeleteClause(condition: string) {
+  private prepareDeleteClause(condition: string): string {
     const [tableName, column, value] = JSON.parse(condition);
     return `DELETE FROM ${tableName} WHERE ${column}=${value}`;
   }
 
   // clearTable("users_docker2")
-  private prepareTruncateClause(tableName: string) {
+  private prepareTruncateClause(tableName: string): string {
     return `TRUNCATE TABLE ${JSON.parse(tableName)}`;
   }
 
   //from("users_docker").unique("age")
-  private prepareDisctintClause(column: string) {
+  private prepareDisctintClause(column: string): string {
     return `DISTINCT(${JSON.parse(column)})`;
   }
 
   // insertRecord(["users_docker","Mariano","Marianowicz","121"])
   // insertRecord(["users_docker","Dżejson","Myszokkkk","121"])
-  private insertRecord(record: string) {
+  private insertRecord(record: string): string {
     const [tableName, ...recordData] = JSON.parse(record);
     const quotedRecordData = recordData.map((el) => `'${el}'`);
     return `INSERT INTO ${tableName} VALUES(NULL, ${quotedRecordData.join(

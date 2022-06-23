@@ -1,143 +1,82 @@
+import { SqlValidatorMethods } from './types/sqlValidatorMethods';
+
 export class sqlQueryBuilderValidator {
-  public static readonly methodsFunctions = {
+  private static standaloneMethods = [
+    'insertRecord',
+    'updateRecord',
+    'deleteRecord',
+    'clearTable',
+  ];
+
+  public static readonly methodsFunctions: SqlValidatorMethods = {
     from: {
-      notValidOtherMethods: [
-        'insertRecord',
-        'updateRecord',
-        'deleteRecord',
-        'clearTable',
-      ],
+      notValidOtherMethods: [...this.standaloneMethods],
     },
     getAll: {
-      notValidOtherMethods: [
-        'getSpecific',
-        'insertRecord',
-        'updateRecord',
-        'deleteRecord',
-        'clearTable',
-      ],
+      notValidOtherMethods: ['getSpecific', ...this.standaloneMethods],
     },
     getSpecific: {
-      notValidOtherMethods: [
-        'getAll',
-        'insertRecord',
-        'updateRecord',
-        'deleteRecord',
-        'clearTable',
-      ],
+      notValidOtherMethods: ['getAll', ...this.standaloneMethods],
+    },
+    unique: {
+      notValidOtherMethods: ['groupBy', ...this.standaloneMethods],
     },
     where: {
-      // odtąd trzeba dać poprawne wartości
       notValidOtherMethods: [
-        'getAll',
-        'insertRecord',
-        'updateRecord',
-        'deleteRecord',
-        'clearTable',
+        ...this.standaloneMethods,
+        'whereNot',
+        'whereOr',
+        'whereAnd',
       ],
     },
     whereNot: {
       notValidOtherMethods: [
-        'getAll',
-        'insertRecord',
-        'updateRecord',
-        'deleteRecord',
-        'clearTable',
+        ...this.standaloneMethods,
+        'where',
+        'whereOr',
+        'whereAnd',
       ],
     },
     whereOr: {
       notValidOtherMethods: [
-        'getAll',
-        'insertRecord',
-        'updateRecord',
-        'deleteRecord',
-        'clearTable',
+        ...this.standaloneMethods,
+        'whereNot',
+        'where',
+        'whereAnd',
       ],
     },
     whereAnd: {
       notValidOtherMethods: [
-        'getAll',
-        'insertRecord',
-        'updateRecord',
-        'deleteRecord',
-        'clearTable',
+        ...this.standaloneMethods,
+        'whereNot',
+        'whereOr',
+        'where',
       ],
     },
     groupBy: {
-      notValidOtherMethods: [
-        'getAll',
-        'insertRecord',
-        'updateRecord',
-        'deleteRecord',
-        'clearTable',
-      ],
+      notValidOtherMethods: ['unique', ...this.standaloneMethods],
     },
     orderAsc: {
-      notValidOtherMethods: [
-        'getAll',
-        'insertRecord',
-        'updateRecord',
-        'deleteRecord',
-        'clearTable',
-      ],
+      notValidOtherMethods: ['orderDesc', ...this.standaloneMethods],
     },
     orderDesc: {
-      notValidOtherMethods: [
-        'getAll',
-        'insertRecord',
-        'updateRecord',
-        'deleteRecord',
-        'clearTable',
-      ],
+      notValidOtherMethods: ['orderAsc', ...this.standaloneMethods],
     },
     insertRecord: {
-      notValidOtherMethods: [
-        'getAll',
-        'insertRecord',
-        'updateRecord',
-        'deleteRecord',
-        'clearTable',
-      ],
-    },
-    unique: {
-      notValidOtherMethods: [
-        'getAll',
-        'insertRecord',
-        'updateRecord',
-        'deleteRecord',
-        'clearTable',
-      ],
+      notValidOtherMethods: ['updateRecord', 'deleteRecord', 'clearTable'],
     },
     updateRecord: {
-      notValidOtherMethods: [
-        'getAll',
-        'insertRecord',
-        'updateRecord',
-        'deleteRecord',
-        'clearTable',
-      ],
+      notValidOtherMethods: ['insertRecord', 'deleteRecord', 'clearTable'],
     },
     deleteRecord: {
-      notValidOtherMethods: [
-        'getAll',
-        'insertRecord',
-        'updateRecord',
-        'deleteRecord',
-        'clearTable',
-      ],
+      notValidOtherMethods: ['insertRecord', 'updateRecord', 'clearTable'],
     },
     clearTable: {
-      notValidOtherMethods: [
-        'getAll',
-        'insertRecord',
-        'updateRecord',
-        'deleteRecord',
-        'clearTable',
-      ],
+      notValidOtherMethods: ['insertRecord', 'updateRecord', 'deleteRecord'],
     },
   };
 
-  public static checkIfAllowedMethods(queryMethods: string[][]) {
+  public static checkIfAllowedMethods(queryMethods: string[][]): boolean {
     const allowedMethods = this.getAllowedMethods();
     return queryMethods.every((el) => allowedMethods.includes(el[0]));
   }
@@ -152,7 +91,7 @@ export class sqlQueryBuilderValidator {
   public static checkIfValidQueryMethods(
     methodName: string,
     queryMethods: string[][],
-  ) {
+  ): boolean {
     const notValidQueryngMethods =
       this.methodsFunctions[methodName].notValidOtherMethods;
     return !queryMethods.some((method) =>

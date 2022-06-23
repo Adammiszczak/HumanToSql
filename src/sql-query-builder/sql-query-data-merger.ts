@@ -4,7 +4,7 @@ export class sqlQueryDataMerger {
   public static queryData: QueryData = {
     database: '',
     tableName: '',
-    columns: [''],
+    columns: [],
     where: [],
     whereNot: [],
     whereOr: '',
@@ -24,7 +24,6 @@ export class sqlQueryDataMerger {
     let mainClause;
 
     if (this.queryData.columns) {
-      console.log('done');
       mainClause = `SELECT ${this.queryData.columns.join(', ')} FROM ${
         this.queryData.tableName
       }`;
