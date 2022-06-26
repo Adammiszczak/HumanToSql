@@ -2,47 +2,41 @@
 
 <br>
 
-## Wymagana wiedza
+## Required knowledge
 
 - SQL, Node, JS
 
-## Technologie potrzebne do zadania
+## Required technology for task
 
-- [Dowolna technologia z tego linku](https://www.prisma.io/dataguide/database-tools/top-nodejs-orms-query-builders-and-database-libraries#waterline)
+- [Any technology from link](https://www.prisma.io/dataguide/database-tools/top-nodejs-orms-query-builders-and-database-libraries#waterline)
 
-## Cele główne
+## Main Goals
 
-- [ ] Stwórz aplikację umożliwiającą pisanie zapytań SQL-owych jako ciąg funkcji w formie tekstu
+- [] Make an apllication which translates given string with a chain of custom methods for valid SQL Query
 
-Przykład takiego zapytania: "from("users_docker").getAll().where("name = "Azor"")".
+Example of such query: **from("users_docker").getAll().where("name = "Azor"")**.
 
-- Przykład takiego zapytania: 'select(["id","name","surname"]).from("users_docker").getAll().where("name = "Azor"")'
-  // getAll / getChoosen
-  // getCosTam powinno być po from('users_docker')
-- Przetumaczone zapytanie SQL-owe : select \* from pieski where name = Azor
+- List of SQL keywords which your app has to support:
+- [] insert
+- [] select
+- [] from
+- [] add
+- [] distinct
+- [] update
+- [] delete
+- [] truncate
+- [] by xYZ asc
+- [] by XYZ desc
+- [] where
+- [] and
+- [] or
+- [] not
+- [] group by
 
-* Lista słów SQL-owych którą powinien wspierać twój program:
-* [x] insert
-* [????] create table (jaki input ma dawać user? Raczej nie będzie dawał informacji, że kolumna firstName ma typ varchar(255), co jest wymagane przy tworzeniu tabeli)
-* [x] select
-* [x] from
-* [x] add
-* [x] distinct
-* [x]update
-* [x]delete
-* [x]truncate
-* [x] by xYZ asc
-* [x] by XYZ desc
-* [x] where
-* [x] and
-* [x] or
-* [x] not
-* [x] group by
+## Optional goals
 
-## Cele opcjonalne do wykonania
+- [ ] Make a basic graphical user interface for sending and exectuing queries
 
-- [ ] Stwórz prosty interfejs graficzny który umożliwia wykonywanie zapytań
+## Useful Links
 
-## Przydatne linki
-
-- Jak działają dane zapytania w sql-u: https://www.educba.com/sql-keywords/
+- Introduction to SQL Keywords: https://www.educba.com/sql-keywords/
