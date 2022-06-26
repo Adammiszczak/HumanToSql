@@ -87,7 +87,6 @@ export class sqlQueryBuilderValidator {
     }
   }
 
-  // from("users_docker").getAll().getSpecific(["id","age"])
   public static checkIfValidQueryMethods(
     methodName: string,
     queryMethods: string[][],
@@ -99,7 +98,6 @@ export class sqlQueryBuilderValidator {
     );
   }
 
-  // from("users_docker").getAll().getSpecific(["id","age"])
   public static assertValidQueryMethods(
     IfValidQueryMethods: boolean,
   ): void | never {
