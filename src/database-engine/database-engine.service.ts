@@ -2,8 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import knex from 'knex';
 import { ConfigService } from '@nestjs/config';
 
-// custom error
-
 @Injectable()
 export class DatabaseEngineService {
   constructor(private configService: ConfigService) {}
@@ -23,8 +21,8 @@ export class DatabaseEngineService {
       return knex({
         client: 'mysql',
         connection: {
-          port: 3308,
-          host: 'localhost',
+          port: this.configService.get<number>('DB_PORT'),
+          host: this.configService.get<string>('DB_HOST'),
           user: this.configService.get<string>('DB_USER'),
           password: this.configService.get<string>('DB_PASSWORD'),
           database: this.configService.get<string>('DB_NAME'),

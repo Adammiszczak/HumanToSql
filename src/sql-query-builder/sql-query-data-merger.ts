@@ -1,90 +1,63 @@
 import { QueryData } from './types/queryData';
 
 export class sqlQueryDataMerger {
-  public static queryData: QueryData = {
-    database: '',
-    tableName: '',
-    columns: [],
-    where: [],
-    whereNot: [],
-    whereOr: '',
-    whereAnd: '',
-    create: '',
-    insert: '',
-    distinct: '',
-    update: '',
-    delete: '',
-    truncate: '',
-    groupBy: '',
-    orderAsc: '',
-    orderDesc: '',
-  };
-
-  public static joinQueryData() {
+  public static joinQueryData(queryData: QueryData) {
     let mainClause;
 
-    if (this.queryData.columns) {
-      mainClause = `SELECT ${this.queryData.columns.join(', ')} FROM ${
-        this.queryData.tableName
+    if (queryData.columns) {
+      mainClause = `SELECT ${queryData.columns.join(', ')} FROM ${
+        queryData.tableName
       }`;
     }
 
-    if (this.queryData.update) {
-      return this.queryData.update;
+    if (queryData.update) {
+      return queryData.update;
     }
 
-    if (this.queryData.delete) {
-      return this.queryData.delete;
+    if (queryData.delete) {
+      return queryData.delete;
     }
 
-    if (this.queryData.insert) {
-      return this.queryData.insert;
+    if (queryData.insert) {
+      return queryData.insert;
     }
 
-    if (this.queryData.truncate) {
-      return this.queryData.truncate;
+    if (queryData.truncate) {
+      return queryData.truncate;
     }
 
-    if (this.queryData.distinct) {
-      mainClause = mainClause.replace(
-        ' FROM',
-        `${this.queryData.distinct} FROM`,
-      );
+    if (queryData.distinct) {
+      mainClause = mainClause.replace(' FROM', `${queryData.distinct} FROM`);
     }
 
-    if (this.queryData.where) {
-      mainClause = `${mainClause} ${this.queryData.where}`;
+    if (queryData.where) {
+      mainClause = `${mainClause} ${queryData.where}`;
     }
 
-    if (this.queryData.whereNot) {
-      mainClause = `${mainClause} ${this.queryData.whereNot}`;
+    if (queryData.whereNot) {
+      mainClause = `${mainClause} ${queryData.whereNot}`;
     }
 
-    if (this.queryData.whereOr) {
-      mainClause = `${mainClause} ${this.queryData.whereOr}`;
+    if (queryData.whereOr) {
+      mainClause = `${mainClause} ${queryData.whereOr}`;
     }
 
-    if (this.queryData.whereAnd) {
-      mainClause = `${mainClause} ${this.queryData.whereAnd}`;
+    if (queryData.whereAnd) {
+      mainClause = `${mainClause} ${queryData.whereAnd}`;
     }
 
-    if (this.queryData.groupBy) {
-      mainClause = `${mainClause} ${this.queryData.groupBy}`;
+    if (queryData.groupBy) {
+      mainClause = `${mainClause} ${queryData.groupBy}`;
     }
 
-    if (this.queryData.orderAsc) {
-      mainClause = `${mainClause} ${this.queryData.orderAsc}`;
+    if (queryData.orderAsc) {
+      mainClause = `${mainClause} ${queryData.orderAsc}`;
     }
 
-    if (this.queryData.orderDesc) {
-      mainClause = `${mainClause} ${this.queryData.orderDesc}`;
+    if (queryData.orderDesc) {
+      mainClause = `${mainClause} ${queryData.orderDesc}`;
     }
 
-    this.cleanQueryData();
     return mainClause;
-  }
-
-  private static cleanQueryData() {
-    this.queryData = {};
   }
 }
